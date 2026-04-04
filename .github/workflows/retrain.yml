@@ -1,0 +1,62 @@
+name: Fall Detection — Retrain & Validate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/**"
+      - "train.py"
+      - "simulate_data.py"
+  workflow_dispatch:       # Manual trigger from GitHub UI
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 🔧 Generate synthetic data
+        run: python simulate_data.py
+
+      - name: 🚀 Train model & log to MLflow
+        run: python train.py --n_estimators=100 --max_depth=10
+
+      - name: 📊 Run drift detection
+        run: python monitor.py
+
+      - name: 📁 Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlops-artifacts
+          path: |
+            model/metrics.json
+            reports/drift_report.html
+          retention-days: 7
+
+      - name: ✅ Validate model performance
+        run: |
+          python - <<'EOF'
+          import json, sys
+          with open("model/metrics.json") as f:
+              m = json.load(f)
+          print(f"Accuracy : {m['accuracy']:.4f}")
+          print(f"F1 Score : {m['f1_score']:.4f}")
+          if m["accuracy"] < 0.80:
+              print("❌ Accuracy below 80% threshold — failing build")
+              sys.exit(1)
+          if m["f1_score"] < 0.75:
+              print("❌ F1 Score below 75% threshold — failing build")
+              sys.exit(1)
+          print("✅ Model meets quality thresholds — build passed")
+          EOF
