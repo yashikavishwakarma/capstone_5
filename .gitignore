@@ -1,0 +1,5 @@
+MobiFall_Dataset_v2.0/
+mlruns/
+__pycache__/
+*.pkl
+model/
