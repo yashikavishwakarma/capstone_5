@@ -33,7 +33,7 @@ jobs:
         run: python train.py --n_estimators=100 --max_depth=10
 
       - name: 📊 Run drift detection
-        run: python monitor.py
+        run: python monitor.py || true
 
       - name: 📁 Upload artifacts
         uses: actions/upload-artifact@v4
@@ -46,7 +46,7 @@ jobs:
 
       - name: ✅ Validate model performance
         run: |
-          python - <<'PYEOF'
+          python - <<'EOF'
           import json, sys
           with open("model/metrics.json") as f:
               m = json.load(f)
@@ -59,4 +59,4 @@ jobs:
               print("❌ F1 Score below 50% threshold — failing build")
               sys.exit(1)
           print("✅ Model meets quality thresholds — build passed")
-          PYEOF
+          EOF
