@@ -1,4 +1,5 @@
 # 🩺 Fall Detection — MLOps Pipeline (CP5)
+[![Fall Detection — Retrain & Validate](https://github.com/HARMANXPAL/cp5-fall-detection-mlops/actions/workflows/retrain.yml/badge.svg)](https://github.com/HARMANXPAL/cp5-fall-detection-mlops/actions/workflows/retrain.yml)
 
 > **Capstone Project 5**: DevOps for AI Deployment  
 > Built on top of CP1 (TinyML wearable), CP2 (R analytics), CP3 (Power BI dashboards)
