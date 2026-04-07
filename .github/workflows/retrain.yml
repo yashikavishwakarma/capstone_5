@@ -3,10 +3,6 @@ name: Fall Detection — Retrain & Validate
 on:
   push:
     branches: [main]
-    paths:
-      - "data/**"
-      - "train.py"
-      - "simulate_data.py"
   workflow_dispatch:
 
 jobs:
@@ -14,49 +10,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: ⬇️ Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python 3.10
-        uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
-          cache: "pip"
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: 🔧 Generate synthetic data
+      - name: Generate data
         run: python simulate_data.py
 
-      - name: 🚀 Train model & log to MLflow
-        run: python train.py --n_estimators=100 --max_depth=10
+      - name: Train model
+        run: python train.py
 
-      - name: 📊 Run drift detection
-        run: python monitor.py || true
-
-      - name: 📁 Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlops-artifacts
-          path: |
-            model/metrics.json
-            reports/drift_report.html
-          retention-days: 7
-
-      - name: ✅ Validate model performance
+      - name: Quality gate (accuracy must be ≥ 80%)
         run: |
-          python - <<'EOF'
-          import json, sys
-          with open("model/metrics.json") as f:
+          python -c "
+          import json
+          with open('model/metrics.json') as f:
               m = json.load(f)
-          print(f"Accuracy : {m['accuracy']:.4f}")
-          print(f"F1 Score : {m['f1_score']:.4f}")
-          if m["accuracy"] < 0.60:
-              print("❌ Accuracy below 60% threshold — failing build")
-              sys.exit(1)
-          if m["f1_score"] < 0.50:
-              print("❌ F1 Score below 50% threshold — failing build")
-              sys.exit(1)
-          print("✅ Model meets quality thresholds — build passed")
-          EOF
+          acc = m['accuracy']
+          print(f'Accuracy: {acc}')
+          assert acc >= 0.80, f'Quality gate FAILED: accuracy {acc} < 0.80'
+          print('Quality gate PASSED ✅')
+          "

@@ -1,35 +1,45 @@
+# simulate_data.py
 import numpy as np
 import pandas as pd
 import os
 
-os.makedirs("data", exist_ok=True)
-os.makedirs("model", exist_ok=True)
-os.makedirs("reports", exist_ok=True)
-
 np.random.seed(42)
-n_total = 2000
-n_falls = 400
+os.makedirs("data", exist_ok=True)
 
-def make_samples(n, is_fall):
-    scale = 3.5 if is_fall else 1.0
-    data = np.random.randn(n, 35) * scale
-    return data
+FEATURES = ["ax", "ay", "az", "gx", "gy", "gz", "sma", "smg", "resultant"]
 
-fall_data = make_samples(n_falls, True)
-adl_data  = make_samples(n_total - n_falls, False)
+def generate_samples(n_total=2000, fall_ratio=0.2):
+    n_falls = int(n_total * fall_ratio)
+    n_adl   = n_total - n_falls
 
-X = np.vstack([fall_data, adl_data])
-y = np.array([1]*n_falls + [0]*(n_total - n_falls))
+    # Normal activity
+    adl = np.random.randn(n_adl, 9) * [0.3,0.3,0.3, 0.2,0.2,0.2, 0.2,0.2,0.3]
+    adl[:,2] += 1.0  # gravity on z-axis
 
-cols = [f"feature_{i}" for i in range(35)]
-df = pd.DataFrame(X, columns=cols)
-df["label"] = y
-df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+    # Falls - higher magnitude
+    falls = np.random.randn(n_falls, 9) * [2.5,2.5,2.5, 1.5,1.5,1.5, 2.0,1.5,2.5]
+    falls[:,2] += 0.5
 
-split = int(0.8 * len(df))
-df.iloc[:split].to_csv("data/train.csv", index=False)
-df.iloc[split:].to_csv("data/test.csv",  index=False)
-df.iloc[split:].to_csv("data/drift.csv", index=False)
+    X = np.vstack([adl, falls])
+    y = np.array([0]*n_adl + [1]*n_falls)
 
-print(f"Generated {len(df)} samples ({n_falls} falls)")
+    df = pd.DataFrame(X, columns=FEATURES)
+    df["label"] = y
+    return df.sample(frac=1, random_state=42).reset_index(drop=True)
+
+# Train / test split
+df = generate_samples(2000)
+split = int(len(df) * 0.8)
+train_df = df.iloc[:split]
+test_df  = df.iloc[split:]
+
+# Drift data - shift the distribution slightly
+drift_df = generate_samples(500)
+drift_df[FEATURES] += np.random.randn(*drift_df[FEATURES].shape) * 0.5
+
+train_df.to_csv("data/train.csv", index=False)
+test_df.to_csv("data/test.csv",   index=False)
+drift_df.to_csv("data/drift.csv", index=False)
+
+print(f"Generated {len(df)} samples ({df['label'].sum()} falls)")
 print("Saved: data/train.csv, data/test.csv, data/drift.csv")

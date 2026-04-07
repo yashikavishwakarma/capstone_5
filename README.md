@@ -136,5 +136,5 @@ cp5-mlops/
 
 ## 👥 Team
 
-Capstone Project 5 — [Your Names Here]  
-Program: [Your Program Name]
+Capstone Project 5 — Yashika, Harman, Amaan 
+Program: Artificial Intelligence and Machine Learning

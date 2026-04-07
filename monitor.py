@@ -1,44 +1,22 @@
-"""
-monitor.py
-Uses Evidently AI to detect data drift between reference (train)
-and current (drift-injected) sensor data. Saves an HTML report.
-"""
-
+# monitor.py
 import pandas as pd
+from evidently.report import Report
+from evidently.metric_preset import DataDriftPreset
 import os
 
-from evidently.report          import Report
-from evidently.metric_preset   import DataDriftPreset, DataQualityPreset
-from evidently.metrics         import DatasetDriftMetric
+# Load data
+train_df = pd.read_csv("data/train.csv")
+drift_df = pd.read_csv("data/drift.csv")
 
+# Drop label column for drift analysis
+train_df = train_df.drop(columns=["label"])
+drift_df = drift_df.drop(columns=["label"])
 
-def run_drift_report(ref_path="data/train.csv",
-                     cur_path="data/drift.csv",
-                     out_dir="reports"):
+# Create report
+report = Report(metrics=[DataDriftPreset()])
+report.run(reference_data=train_df, current_data=drift_df)
 
-    os.makedirs(out_dir, exist_ok=True)
-
-    ref = pd.read_csv(ref_path).drop("label", axis=1)
-    cur = pd.read_csv(cur_path).drop("label", axis=1)
-
-    # Trim to same size for cleaner comparison
-    n = min(len(ref), len(cur))
-    ref = ref.sample(n, random_state=42)
-    cur = cur.sample(n, random_state=42)
-
-    report = Report(metrics=[
-        DatasetDriftMetric(),
-        DataDriftPreset(),
-        DataQualityPreset(),
-    ])
-
-    report.run(reference_data=ref, current_data=cur)
-
-    out_path = os.path.join(out_dir, "drift_report.html")
-    report.save_html(out_path)
-    print(f"✅ Drift report saved → {out_path}")
-    return out_path
-
-
-if __name__ == "__main__":
-    run_drift_report()
+# Save report
+os.makedirs("reports", exist_ok=True)
+report.save_html("reports/drift_report.html")
+print("✅ Drift report saved to reports/drift_report.html")
