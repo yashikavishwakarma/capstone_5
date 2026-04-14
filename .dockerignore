@@ -1,0 +1,11 @@
+﻿.venv
+venv
+mlruns
+model
+.git
+.github
+__pycache__
+*.pyc
+.DS_Store
+datasetfalldetection.zip
+mlflow.db
