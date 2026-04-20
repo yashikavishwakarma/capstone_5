@@ -4,3 +4,9 @@ __pycache__/
 *.pkl
 model/
 venv/
+.venv/
+mlflow.db
+*.zip
+datasetfalldetection.zip
+*.pyc
+.DS_Store

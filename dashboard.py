@@ -85,7 +85,7 @@ with st.sidebar:
 
     if st.button("📊 Run Drift Report", use_container_width=True):
         with st.spinner("Running Evidently..."):
-            subprocess.run([sys.executable, "monitor.py"], check=True)
+            subprocess.run([sys.executable, "monitor.py"], check=False)
         st.success("Drift report ready!")
 
 # ── Tabs

@@ -39,8 +39,10 @@ services:
       mlflow:
         condition: service_healthy
     command: >
-      sh -c "python simulate_data.py &&
-             python train.py &&
+      sh -c "if [ ! -f /app/model/model.pkl ]; then
+               python simulate_data.py &&
+               python train.py;
+             fi &&
              uvicorn app:app --host 0.0.0.0 --port 8000"
 
   dashboard:

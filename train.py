@@ -3,7 +3,10 @@ train.py
 Trains a Random Forest classifier on fall detection sensor data.
 Logs all experiments to MLflow: params, metrics, confusion matrix, model artifact.
 """
-
+import sys
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 import mlflow
 import mlflow.sklearn
 import pandas as pd
