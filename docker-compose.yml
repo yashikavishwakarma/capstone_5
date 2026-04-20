@@ -1,33 +1,64 @@
 version: "3.9"
-
 services:
-  api:
-    build: .
-    ports:
-      - "8000:8000"
-    command: uvicorn app:app --host 0.0.0.0 --port 8000
-    volumes:
-      - ./model:/app/model
-      - ./mlflow.db:/app/mlflow.db
-
-  dashboard:
-    build: .
-    ports:
-      - "8501:8501"
-    command: streamlit run dashboard.py --server.port=8501 --server.address=0.0.0.0
-    depends_on:
-      - api
-    volumes:
-      - ./model:/app/model
-      - ./reports:/app/reports
-      - ./mlflow.db:/app/mlflow.db
-
   mlflow:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    container_name: cp5-mlflow
     ports:
       - "5000:5000"
-    command: mlflow ui --host 0.0.0.0 --port 5000 --backend-store-uri sqlite:///mlflow.db
     volumes:
-      - ./mlflow.db:/app/mlflow.db
+      - mlflow_data:/mlflow
+    command: >
+      mlflow server
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cp5-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - mlflow_data:/mlflow
+      - model_data:/app/model
+      - ./data:/app/data
+      - ./reports:/app/reports
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    command: >
+      sh -c "python simulate_data.py &&
+             python train.py &&
+             uvicorn app:app --host 0.0.0.0 --port 8000"
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cp5-dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - mlflow_data:/mlflow
+      - model_data:/app/model
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
     depends_on:
       - api
+    command: streamlit run dashboard.py --server.port 8501 --server.address 0.0.0.0
+
+volumes:
+  mlflow_data:
+  model_data:
